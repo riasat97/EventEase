@@ -1,0 +1,94 @@
+@using EventEase.Models
+@using EventEase.Services
+@inject AttendanceService AttendanceService
+@inject SessionService SessionService
+
+<div class="attendance-control">
+    @if (SessionService.IsAuthenticated)
+    {
+        var status = AttendanceService.GetUserAttendanceStatus(EventId);
+        
+        @if (status == null)
+        {
+            <button class="btn btn-success" @onclick="HandleRegister" disabled="@isProcessing">
+                @if (isProcessing)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span class="ms-2">Processing...</span>
+                }
+                else
+                {
+                    <span>Register</span>
+                }
+            </button>
+        }
+        else
+        {
+            <div class="btn-group">
+                <button class="btn @GetStatusButtonClass(status.Value)" disabled>
+                    <i class="bi @GetStatusIcon(status.Value)"></i>
+                    @status.Value.ToString()
+                </button>
+                @if (status.Value == AttendanceStatus.Registered)
+                {
+                    <button class="btn btn-outline-danger" @onclick="HandleCancel">
+                        Cancel
+                    </button>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <a href="/login" class="btn btn-outline-primary">Login to Register</a>
+    }
+
+    @if (ShowAttendeeCount)
+    {
+        var attendees = AttendanceService.GetEventAttendance(EventId);
+        var registeredCount = attendees.Count(a => a.Status == AttendanceStatus.Registered);
+        <div class="mt-2 text-muted">
+            <small>@registeredCount registered</small>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public int EventId { get; set; }
+
+    [Parameter]
+    public bool ShowAttendeeCount { get; set; } = true;
+
+    private bool isProcessing;
+
+    private async Task HandleRegister()
+    {
+        isProcessing = true;
+        await AttendanceService.RegisterForEventAsync(EventId);
+        isProcessing = false;
+    }
+
+    private async Task HandleCancel()
+    {
+        await AttendanceService.UpdateAttendanceStatusAsync(EventId, AttendanceStatus.Cancelled);
+    }
+
+    private string GetStatusButtonClass(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Registered => "btn-success",
+        AttendanceStatus.Attended => "btn-primary",
+        AttendanceStatus.Cancelled => "btn-danger",
+        AttendanceStatus.NoShow => "btn-warning",
+        _ => "btn-secondary"
+    };
+
+    private string GetStatusIcon(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Registered => "bi-check-circle-fill",
+        AttendanceStatus.Attended => "bi-star-fill",
+        AttendanceStatus.Cancelled => "bi-x-circle-fill",
+        AttendanceStatus.NoShow => "bi-exclamation-circle-fill",
+        _ => "bi-question-circle-fill"
+    };
+}

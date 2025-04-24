@@ -1,0 +1,29 @@
+@using EventEase.Services
+@implements IDisposable
+@inject SessionService SessionService
+@inject NavigationManager NavigationManager
+
+@code {
+    private Timer? _timer;
+    private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(1);
+
+    protected override void OnInitialized()
+    {
+        _timer = new Timer(CheckSession, null, TimeSpan.Zero, _checkInterval);
+    }
+
+    private async void CheckSession(object? state)
+    {
+        var session = SessionService.GetCurrentSession();
+        if (session?.IsSessionExpired == true)
+        {
+            await SessionService.EndSessionAsync();
+            await InvokeAsync(() => NavigationManager.NavigateTo("/login"));
+        }
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}

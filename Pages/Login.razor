@@ -1,0 +1,126 @@
+@page "/login"
+@using EventEase.Models
+@using EventEase.Services
+@using Microsoft.Extensions.Logging
+@inject UserService UserService
+@inject SessionService SessionService
+@inject NavigationManager NavigationManager
+@inject ILogger<Login> _logger
+
+<PageTitle>Login - EventEase</PageTitle>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card mt-4">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">Login</h3>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            @errorMessage
+                            <button type="button" class="btn-close" @onclick="@(() => errorMessage = string.Empty)"></button>
+                        </div>
+                    }
+
+                    <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                        <DataAnnotationsValidator />
+
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username or Email</label>
+                            <InputText id="username" class="form-control" @bind-Value="loginModel.Username" />
+                            <ValidationMessage For="@(() => loginModel.Username)" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <div class="input-group">
+                                <InputText type="@(showPassword ? "text" : "password")" 
+                                         id="password" 
+                                         class="form-control" 
+                                         @bind-Value="loginModel.Password" />
+                                <button class="btn btn-outline-secondary" 
+                                        type="button" 
+                                        @onclick="TogglePasswordVisibility">
+                                    <i class="bi bi-@(showPassword ? "eye-slash" : "eye")"></i>
+                                </button>
+                            </div>
+                            <ValidationMessage For="@(() => loginModel.Password)" />
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span class="ms-2">Logging in...</span>
+                                }
+                                else
+                                {
+                                    <span>Login</span>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+
+                    <div class="mt-3 text-center">
+                        Don't have an account? <a href="/register">Register</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private string errorMessage = string.Empty;
+    private bool showPassword = false;
+    private bool isProcessing = false;
+
+    protected override void OnInitialized()
+    {
+        // Redirect if already authenticated
+        if (SessionService.IsAuthenticated)
+        {
+            NavigationManager.NavigateTo("/events");
+        }
+    }
+
+    private void TogglePasswordVisibility()
+    {
+        showPassword = !showPassword;
+    }
+
+    private async Task HandleLogin()
+    {
+        try
+        {
+            isProcessing = true;
+            errorMessage = string.Empty;
+
+            var user = await UserService.ValidateUserAsync(loginModel.Username, loginModel.Password);
+            
+            if (user != null)
+            {
+                await SessionService.StartSessionAsync(user);
+                NavigationManager.NavigateTo("/events");
+            }
+            else
+            {
+                errorMessage = "Invalid username or password";
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Login error occurred");
+            errorMessage = "An unexpected error occurred. Please try again.";
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+}

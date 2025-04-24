@@ -1,0 +1,56 @@
+﻿@using EventEase.Services
+@inherits LayoutComponentBase
+@inject SessionService SessionService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            @if (SessionService.IsAuthenticated)
+            {
+                var session = SessionService.GetCurrentSession();
+                <div class="me-3">
+                    Welcome, @session?.FullName!
+                </div>
+                <button class="btn btn-link" @onclick="HandleLogout">Logout</button>
+            }
+            else
+            {
+                <a href="/register" class="me-3">Register</a>
+                <a href="/login">Login</a>
+            }
+        </div>
+
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        SessionService.OnSessionChanged += HandleSessionChanged;
+    }
+
+    private void HandleSessionChanged(SessionState? session)
+    {
+        StateHasChanged();
+    }
+
+    private async Task HandleLogout()
+    {
+        await SessionService.EndSessionAsync();
+        NavigationManager.NavigateTo("/");
+    }
+
+    public void Dispose()
+    {
+        SessionService.OnSessionChanged -= HandleSessionChanged;
+    }
+}

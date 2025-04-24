@@ -1,0 +1,30 @@
+## .NET Core
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.pdb
+*.exe
+
+## VS Code
+.vscode/
+*.code-workspace
+
+## Visual Studio
+.vs/
+*.vspscc
+*_i.c
+*_p.c
+*.ncb
+*.sdf
+*.opensdf
+*.cachefile
+
+## Rider
+.idea/
+
+## Project-specific files
+wwwroot/lib/
+*.log

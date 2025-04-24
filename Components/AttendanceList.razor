@@ -1,0 +1,89 @@
+@using EventEase.Models
+@using EventEase.Services
+@inject UserService UserService
+@inject SessionService SessionService
+
+<div class="attendance-list">
+    @if (Attendees?.Any() == true)
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Attendee</th>
+                        <th>Status</th>
+                        <th>Registered On</th>
+                        <th>Notes</th>
+                        @if (IsAdmin)
+                        {
+                            <th>Actions</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var attendance in Attendees)
+                    {
+                        <tr>
+                            <td>@GetAttendeeName(attendance)</td>
+                            <td>
+                                <span class="badge @GetStatusBadgeClass(attendance.Status)">
+                                    @attendance.Status
+                                </span>
+                            </td>
+                            <td>@attendance.RegisteredAt.ToLocalTime().ToString("g")</td>
+                            <td>@attendance.Notes</td>
+                            @if (IsAdmin)
+                            {
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-primary"
+                                                @onclick="() => OnStatusUpdate.InvokeAsync((attendance.Id, AttendanceStatus.Attended))">
+                                            Mark Attended
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-warning"
+                                                @onclick="() => OnStatusUpdate.InvokeAsync((attendance.Id, AttendanceStatus.NoShow))">
+                                            Mark No-Show
+                                        </button>
+                                    </div>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            No attendees registered yet.
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public IEnumerable<Attendance> Attendees { get; set; } = Array.Empty<Attendance>();
+
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    [Parameter]
+    public EventCallback<(int attendanceId, AttendanceStatus newStatus)> OnStatusUpdate { get; set; }
+
+    private string GetStatusBadgeClass(AttendanceStatus status) => status switch
+    {
+        AttendanceStatus.Registered => "bg-success",
+        AttendanceStatus.Attended => "bg-primary",
+        AttendanceStatus.Cancelled => "bg-danger",
+        AttendanceStatus.NoShow => "bg-warning",
+        _ => "bg-secondary"
+    };
+
+    private string GetAttendeeName(Attendance attendance)
+    {
+        // In a real application, this would be fetched from the user service
+        // For now, we'll just show the user ID
+        return $"User {attendance.UserId}";
+    }
+}

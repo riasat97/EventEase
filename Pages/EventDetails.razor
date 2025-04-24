@@ -1,0 +1,143 @@
+@page "/events/{id:int}"
+@using EventEase.Models
+@using EventEase.Services
+@inject EventState EventState
+@inject NavigationManager NavigationManager
+@inject SessionService SessionService
+@inject AttendanceService AttendanceService
+
+<PageTitle>@(Event?.Name ?? "Loading...") - EventEase</PageTitle>
+
+@if (Event == null)
+{
+    <div class="text-center mt-4">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else
+{
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/events">Events</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">@Event.Name</li>
+                    </ol>
+                </nav>
+
+                <div class="card">
+                    @if (!string.IsNullOrEmpty(Event.ImageUrl))
+                    {
+                        <img src="@Event.ImageUrl" 
+                             class="card-img-top" 
+                             alt="@Event.Name"
+                             style="height: 300px; object-fit: cover;"
+                             @onerror="HandleImageError" />
+                    }
+                    <div class="card-body">
+                        <h1 class="card-title">@Event.Name</h1>
+                        <p class="card-text">@Event.Description</p>
+                        
+                        <div class="mb-4">
+                            <h5>Event Details</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><i class="bi bi-calendar"></i> @Event.Date.ToLongDateString()</p>
+                                    <p><i class="bi bi-geo-alt"></i> @Event.Location</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <AttendanceControl EventId="@Event.Id" ShowAttendeeCount="false" />
+                        </div>
+                    </div>
+                </div>
+
+                @if (SessionService.IsAuthenticated)
+                {
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Attendance Information</h5>
+                        </div>
+                        <div class="card-body">
+                            @{
+                                var attendees = AttendanceService.GetEventAttendance(Event.Id);
+                                var registeredCount = attendees.Count(a => a.Status == AttendanceStatus.Registered);
+                                var attendedCount = attendees.Count(a => a.Status == AttendanceStatus.Attended);
+                                var cancelledCount = attendees.Count(a => a.Status == AttendanceStatus.Cancelled);
+                            }
+                            <div class="row g-2 mb-4">
+                                <div class="col-sm-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h3 class="card-title">@registeredCount</h3>
+                                            <p class="card-text">Registered</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h3 class="card-title">@attendedCount</h3>
+                                            <p class="card-text">Attended</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h3 class="card-title">@cancelledCount</h3>
+                                            <p class="card-text">Cancelled</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h6 class="mb-3">Attendee List</h6>
+                            <AttendanceList 
+                                Attendees="@attendees"
+                                IsAdmin="@isAdmin"
+                                OnStatusUpdate="HandleStatusUpdate" />
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private Event? Event { get; set; }
+    private bool isAdmin = true; // TODO: Implement proper admin check
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Event = await EventState.GetEventByIdAsync(Id);
+        if (Event == null)
+        {
+            NavigationManager.NavigateTo("/events");
+        }
+    }
+
+    private async Task HandleStatusUpdate((int attendanceId, AttendanceStatus newStatus) update)
+    {
+        await AttendanceService.UpdateAttendanceStatusAsync(Id, update.newStatus);
+        StateHasChanged();
+    }
+
+    private void HandleImageError()
+    {
+        if (Event != null)
+        {
+            Event.ImageUrl = string.Empty;
+            StateHasChanged();
+        }
+    }
+}

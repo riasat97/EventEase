@@ -1,0 +1,46 @@
+.attendance-control {
+    margin-bottom: 1rem;
+}
+
+.attendance-list .badge {
+    font-size: 0.9em;
+    padding: 0.5em 0.7em;
+}
+
+.attendance-stats {
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.attendance-stats .stat-card {
+    text-align: center;
+    padding: 1rem;
+    background: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.attendance-stats .stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+.attendance-stats .stat-label {
+    color: #6c757d;
+    margin-top: 0.5rem;
+}
+
+.attendance-list th {
+    font-weight: 600;
+}
+
+.attendance-list .table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+}
+
+.attendance-list .btn-group {
+    white-space: nowrap;
+}

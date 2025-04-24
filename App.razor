@@ -1,0 +1,30 @@
+﻿@using EventEase.Pages
+@using EventEase.Components
+@inject NavigationManager NavigationManager
+
+<Router AppAssembly="@typeof(App).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <PageTitle>Not Found - EventEase</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <NotFound />
+        </LayoutView>
+    </NotFound>
+</Router>
+
+<SessionMonitor />
+
+@code {
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += HandleLocationChanged;
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        Console.WriteLine($"Navigation to {e.Location} at {DateTime.Now}");
+    }
+}

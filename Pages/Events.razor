@@ -1,0 +1,112 @@
+@page "/events"
+@using EventEase.Models
+@using EventEase.Services
+@using System.Timers
+@inject EventState EventState
+
+<PageTitle>Events - EventEase</PageTitle>
+
+<div class="container-fluid">
+    <h1>Upcoming Events</h1>
+
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" 
+                       class="form-control" 
+                       placeholder="Search events..." 
+                       @bind-value="searchText" 
+                       @bind-value:event="oninput"
+                       @onkeyup="HandleSearch" />
+            </div>
+        </div>
+    </div>
+
+    <div class="events-container">
+        @if (filteredEvents == null)
+        {
+            <p>Loading events...</p>
+        }
+        else if (!filteredEvents.Any())
+        {
+            <p>No events found.</p>
+        }
+        else
+        {
+            <Virtualize Items="@filteredEvents" Context="evt" ItemSize="300" TItem="Event">
+                <ItemContent>
+                    <EventCard Event="evt" />
+                </ItemContent>
+                <Placeholder Context="placeholderContext">
+                    <div class="card m-3" style="width: 18rem; height: 300px">
+                        <div class="card-body">
+                            <div class="placeholder-glow">
+                                <div class="placeholder col-12 mb-3" style="height: 180px"></div>
+                                <div class="placeholder col-6 mb-2"></div>
+                                <div class="placeholder col-8 mb-3"></div>
+                                <div class="placeholder col-4"></div>
+                            </div>
+                        </div>
+                    </div>
+                </Placeholder>
+            </Virtualize>
+        }
+    </div>
+</div>
+
+<style>
+    .events-container {
+        height: calc(100vh - 200px);
+        overflow-y: auto;
+        padding: 1rem;
+    }
+</style>
+
+@code {
+    private List<Event>? events;
+    private List<Event>? filteredEvents;
+    private string searchText = string.Empty;
+    private Timer? debounceTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        events = (await EventState.GetEventsAsync()).ToList();
+        filteredEvents = events;
+        
+        // Initialize debounce timer
+        debounceTimer = new Timer(300);
+        debounceTimer.Elapsed += async (sender, e) => await SearchEvents();
+        debounceTimer.AutoReset = false;
+    }
+
+    private void HandleSearch()
+    {
+        debounceTimer?.Stop();
+        debounceTimer?.Start();
+    }
+
+    private async Task SearchEvents()
+    {
+        if (events == null) return;
+
+        await InvokeAsync(() =>
+        {
+            filteredEvents = string.IsNullOrWhiteSpace(searchText)
+                ? events
+                : events.Where(e =>
+                    e.Name.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    e.Description.Contains(searchText, StringComparison.OrdinalIgnoreCase) ||
+                    e.Location.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose()
+    {
+        debounceTimer?.Dispose();
+    }
+}

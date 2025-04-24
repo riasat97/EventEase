@@ -1,0 +1,108 @@
+@using EventEase.Models
+@using System.ComponentModel.DataAnnotations
+@implements IDisposable
+
+<div class="card m-3" style="width: 18rem;">
+    @if (ValidationResults.Count() > 0)
+    {
+        <div class="alert alert-warning">
+            <ul class="mb-0">
+                @foreach (var error in ValidationResults)
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+    else
+    {
+        <div class="card-img-wrapper" style="height: 180px; position: relative;">
+            @if (!string.IsNullOrEmpty(Event.ImageUrl))
+            {
+                @if (!imageLoaded)
+                {
+                    <div class="placeholder-glow" style="height: 180px;">
+                        <span class="placeholder col-12 h-100"></span>
+                    </div>
+                }
+                <img src="@Event.ImageUrl" 
+                     class="card-img-top @(imageLoaded ? "d-block" : "d-none")" 
+                     alt="@Event.Name" 
+                     style="height: 180px; object-fit: cover;"
+                     @onload="HandleImageLoad"
+                     @onerror="HandleImageError" />
+            }
+            else
+            {
+                <div class="placeholder-image d-flex align-items-center justify-content-center h-100 bg-light">
+                    <i class="bi bi-calendar-event text-muted" style="font-size: 3rem;"></i>
+                </div>
+            }
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">@Event.Name</h5>
+            <p class="card-text text-truncate">@Event.Description</p>
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">@formattedDate</small>
+                <small class="text-muted">@Event.Location</small>
+            </div>
+            <div class="mt-3">
+                <AttendanceControl EventId="@Event.Id" />
+            </div>
+            <a href="/events/@Event.Id" class="btn btn-primary mt-2">View Details</a>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Event Event { get; set; } = default!;
+
+    private bool imageLoaded;
+    private string formattedDate = string.Empty;
+    private IEnumerable<ValidationResult> ValidationResults { get; set; } = Array.Empty<ValidationResult>();
+    private bool _isDisposed;
+
+    protected override void OnParametersSet()
+    {
+        if (!_isDisposed)
+        {
+            ValidateEvent();
+            formattedDate = Event.Date.ToShortDateString();
+            imageLoaded = false;
+        }
+    }
+
+    private void ValidateEvent()
+    {
+        var validationContext = new ValidationContext(Event);
+        var validationResults = new List<ValidationResult>();
+        ValidationResults = !Validator.TryValidateObject(Event, validationContext, validationResults, validateAllProperties: true) 
+            ? validationResults 
+            : Array.Empty<ValidationResult>();
+    }
+
+    private void HandleImageLoad()
+    {
+        if (!_isDisposed)
+        {
+            imageLoaded = true;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleImageError()
+    {
+        if (!_isDisposed)
+        {
+            Event.ImageUrl = string.Empty;
+            imageLoaded = false;
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        _isDisposed = true;
+    }
+}
